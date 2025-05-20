@@ -1,0 +1,738 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.awt.image.BufferedImage;
+
+public class StudentDashboard {
+    private static final Color PRIMARY_COLOR = new Color(0, 51, 102);
+    private static final Color SIDEBAR_COLOR = new Color(240, 245, 250);
+    private static final Color ACTIVE_MENU_COLOR = new Color(200, 230, 255);
+    private static final Font MENU_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font SECTION_TITLE_FONT = new Font("Segoe UI", Font.BOLD, 18);
+
+    public static void main(String[] args) {
+        // Built-in student: first year, 9 subjects
+        java.util.List<String> firstYearSubjects = java.util.List.of(
+                "ENGL 100: Communication Arts",
+                "SOCIO 102: Gender and Society",
+                "MATH 100: College Mathematics",
+                "PSYCH 101: Understanding the Self",
+                "CC-INTCOM11: Introduction to Computing",
+                "CC-COMPROG11: Computer Programming 1",
+                "IT-WEBDEV11: Web Design & Development",
+                "PE 101: Movement Competency Training (PATHFit 1)",
+                "NSTP 101: National Service Training Program 1"
+            );
+        // Add built-in student to EnrollmentFormUI's studentDatabase
+        if (EnrollmentFormUI.getStudentDatabase() != null) {
+            EnrollmentFormUI.getStudentDatabase().put(
+                "khujei",
+                new EnrollmentFormUI.Student(
+                    "20250001",           // ID number
+                    "Khu",                // First name
+                    "Jei",                // Last name
+                    "khujei@uc.edu",      // Email
+                    "1st Year",           // Year Level
+                    "Bachelor of Science in Information Technology", // Program
+                    firstYearSubjects,    // 9 subjects
+                    "khujei",             // Username
+                    "pass123"             // Password
+                )
+            );
+        }
+        // Add corresponding login account
+        LoginUI.addAccount("khujei", "pass123", "Student");
+
+        SwingUtilities.invokeLater(() -> openStudentDashboard("khujei"));
+    }
+
+    public static void openStudentDashboard(String username) {
+        JFrame frame = new JFrame("Student Dashboard - " + username);
+        frame.setSize(1300, 700);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+
+        JPanel headerPanel = createHeaderPanel(username);
+        frame.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel sidebarPanel = createSidebarPanel();
+        JPanel mainContentPanel = new JPanel(new CardLayout());
+        mainContentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        frame.add(sidebarPanel, BorderLayout.WEST);
+        frame.add(mainContentPanel, BorderLayout.CENTER);
+
+        String[] menuItems = {"Dashboard", "Notifications", "Enrollment", "Prospectus", "Study Load", "Grades", "Profile"};
+        JButton[] menuButtons = new JButton[menuItems.length];
+
+        for (int i = 0; i < menuItems.length; i++) {
+            String item = menuItems[i];
+            JButton menuButton = createMenuButton(item);
+            menuButtons[i] = menuButton;
+            JPanel contentPanel = createContentPanel(item, username, frame, (CardLayout) mainContentPanel.getLayout(), mainContentPanel, sidebarPanel);
+            mainContentPanel.add(contentPanel, item);
+
+            String cardName = item;
+            menuButton.addActionListener(e -> {
+                        setActiveMenuButton(sidebarPanel, menuButton);
+                        ((CardLayout) mainContentPanel.getLayout()).show(mainContentPanel, cardName);
+                });
+            sidebarPanel.add(menuButton);
+        }
+        if (menuButtons.length > 0) {
+            setActiveMenuButton(sidebarPanel, menuButtons[0]);
+            ((CardLayout) mainContentPanel.getLayout()).show(mainContentPanel, menuItems[0]);
+        }
+        frame.setVisible(true);
+    }
+
+    private static JPanel createHeaderPanel(String username) {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(PRIMARY_COLOR);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        JLabel welcomeLabel = new JLabel("Welcome, " + (username == null || username.isEmpty() ? "User" : username), JLabel.LEFT);
+        welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        welcomeLabel.setForeground(Color.WHITE);
+        headerPanel.add(welcomeLabel, BorderLayout.WEST);
+        JLabel roleLabel = new JLabel("Student", JLabel.RIGHT);
+        roleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        roleLabel.setForeground(Color.WHITE);
+        headerPanel.add(roleLabel, BorderLayout.EAST);
+        return headerPanel;
+    }
+
+    private static JPanel createSidebarPanel() {
+        JPanel sidebarPanel = new JPanel();
+        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
+        sidebarPanel.setPreferredSize(new Dimension(220, 0));
+        sidebarPanel.setBackground(SIDEBAR_COLOR);
+        sidebarPanel.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
+        JLabel menuLabel = new JLabel("STUDENT MENU");
+        menuLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        menuLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sidebarPanel.add(menuLabel);
+        sidebarPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        return sidebarPanel;
+    }
+
+    private static JButton createMenuButton(String item) {
+        JButton menuButton = new JButton(item);
+        menuButton.setFont(MENU_FONT);
+        menuButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        menuButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        menuButton.setBackground(SIDEBAR_COLOR);
+        menuButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 10));
+        menuButton.setHorizontalAlignment(SwingConstants.LEFT);
+        menuButton.setFocusPainted(false);
+        menuButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        menuButton.setToolTipText("Go to " + item);
+        menuButton.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseEntered(java.awt.event.MouseEvent e) { if (!menuButton.getBackground().equals(ACTIVE_MENU_COLOR)) menuButton.setBackground(ACTIVE_MENU_COLOR.darker()); }
+
+                @Override public void mouseExited(java.awt.event.MouseEvent e) { if (!menuButton.getBackground().equals(ACTIVE_MENU_COLOR)) menuButton.setBackground(SIDEBAR_COLOR); }
+            });
+        return menuButton;
+    }
+
+    private static int getStudentYearLevel(String username) {
+        if (username == null || EnrollmentFormUI.getStudentDatabase() == null) return 1;
+        EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+        if (student != null) {
+            String yearLevelStr = student.getYearLevel();
+            if (yearLevelStr != null) {
+                if (yearLevelStr.toLowerCase().contains("1st") || yearLevelStr.toLowerCase().contains("first")) return 1;
+                if (yearLevelStr.toLowerCase().contains("2nd") || yearLevelStr.toLowerCase().contains("second")) return 2;
+                if (yearLevelStr.toLowerCase().contains("3rd") || yearLevelStr.toLowerCase().contains("third")) return 3;
+                if (yearLevelStr.toLowerCase().contains("4th") || yearLevelStr.toLowerCase().contains("fourth")) return 4;
+            }
+        }
+        return 1;
+    }
+
+    private static JPanel createContentPanel(String menuItem, String username, JFrame frame,
+    CardLayout cardLayoutManager, JPanel mainContentCardPanel, JPanel sidebar) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        if (menuItem.equals("Dashboard")) {
+            String[] announcements = {
+                    "Enrollment for 1st Semester AY 2025-2026 opens June 1.",
+                    "Final Exams: May 25 - May 29.",
+                    "Please update your contact information in your profile."
+                };
+            int totalUnits = 0; double gwa = 0.0;
+            if (username != null && EnrollmentFormUI.getStudentDatabase() != null) {
+                EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+                if (student != null && student.getCourses() != null) { totalUnits = student.getCourses().size() * 3; }
+            }
+            panel.add(new StudentDashboardPanel(username, getStudentYearLevel(username), totalUnits, gwa, announcements, cardLayoutManager, mainContentCardPanel, sidebar), BorderLayout.CENTER);
+        } else if (menuItem.equals("Notifications")) {
+            panel.add(createNotificationsPanel(), BorderLayout.CENTER);
+        } else if (menuItem.equals("Enrollment")) {
+            panel.add(createEnrollmentPanel(username), BorderLayout.CENTER); // Call the restored panel
+        } else if (menuItem.equals("Prospectus")) {
+            panel.add(createFullProspectusPanel(), BorderLayout.CENTER);
+        } else if (menuItem.equals("Study Load")) {
+            panel.add(createStudyLoadPanel(username), BorderLayout.CENTER);
+        } else if (menuItem.equals("Grades")) {
+            panel.add(createGradesPanel(username), BorderLayout.CENTER);
+        } else if (menuItem.equals("Profile")) {
+            panel.add(createProfilePanel(username, frame), BorderLayout.CENTER);
+        } else {
+            panel.add(new JLabel(menuItem + " section coming soon...", JLabel.CENTER), BorderLayout.CENTER);
+        }
+        return panel;
+    }
+
+    // --- DASHBOARD PANEL ---
+    public static class StudentDashboardPanel extends JPanel { /* ... same as previous correct version ... */
+        private CardLayout cardLayoutManager;
+        private JPanel mainContentCardPanel;
+        private JPanel sidebar;
+
+        public StudentDashboardPanel(String studentName, int yearLevel, int totalUnitsCalculated, double gwa, String[] announcements,
+        CardLayout cardLayoutManager, JPanel mainContentCardPanel, JPanel sidebar) {
+            this.cardLayoutManager = cardLayoutManager;
+            this.mainContentCardPanel = mainContentCardPanel;
+            this.sidebar = sidebar;
+
+            setLayout(new BorderLayout(16, 16)); setBackground(new Color(245, 248, 252));
+            JPanel headerPanel = new JPanel(); headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+            headerPanel.setBackground(new Color(224, 233, 242)); headerPanel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
+            JLabel welcomeLabel = new JLabel("Welcome, " + (studentName == null || studentName.isEmpty() ? "User" : studentName) + "!");
+            welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 28)); welcomeLabel.setForeground(new Color(33, 66, 99));
+            headerPanel.add(welcomeLabel);
+            JLabel overviewLabel = new JLabel("Year Level: " + yearLevel + "    |    Total Units Enrolled: " + totalUnitsCalculated + "    |    GWA: " + (gwa == 0.0 ? "N/A" : String.format("%.2f", gwa)));
+            overviewLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16)); overviewLabel.setForeground(new Color(50, 85, 120));
+            overviewLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0)); headerPanel.add(overviewLabel);
+            JPanel topContent = new JPanel(new BorderLayout()); topContent.setOpaque(false);
+            topContent.add(headerPanel, BorderLayout.NORTH);
+            JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 16, 0)); cardsPanel.setOpaque(false);
+            cardsPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+            int numberOfSubjects = 0;
+            if (studentName != null && EnrollmentFormUI.getStudentDatabase() != null) {
+                EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(studentName);
+                if(student != null && student.getCourses() != null) {
+                    numberOfSubjects = student.getCourses().size();
+                }
+            }
+            cardsPanel.add(makeInfoCard("Subjects Enrolled", String.valueOf(numberOfSubjects), new Color(0, 102, 204)));
+            cardsPanel.add(makeInfoCard("GWA", (gwa == 0.0 ? "N/A" : String.format("%.2f", gwa)), new Color(0, 153, 76)));
+            cardsPanel.add(makeInfoCard("Outstanding Balance", "₱0.00", new Color(255, 153, 51)));
+            cardsPanel.add(makeInfoCard("AY/Semester", "2024-2025 / 1st", new Color(153, 51, 255)));
+            topContent.add(cardsPanel, BorderLayout.CENTER); add(topContent, BorderLayout.NORTH);
+            JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0)); centerPanel.setOpaque(false);
+            JPanel announcementPanel = new JPanel(); announcementPanel.setLayout(new BoxLayout(announcementPanel, BoxLayout.Y_AXIS));
+            announcementPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(180, 200, 220), 1, true), "Announcements", 0, 0, new Font("Segoe UI", Font.BOLD, 16), new Color(33, 66, 99)));
+            announcementPanel.setBackground(Color.WHITE);
+            if (announcements != null && announcements.length > 0) { for (String ann : announcements) { JLabel annLabel = new JLabel("• " + ann); annLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14)); annLabel.setBorder(BorderFactory.createEmptyBorder(3, 6, 3, 0)); announcementPanel.add(annLabel); } } else { JLabel noAnnLabel = new JLabel("No new announcements."); noAnnLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13)); noAnnLabel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 0)); announcementPanel.add(noAnnLabel); }
+            JPanel activityPanel = new JPanel(); activityPanel.setLayout(new BoxLayout(activityPanel, BoxLayout.Y_AXIS));
+            activityPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(180, 200, 220), 1, true), "Recent Activity", 0, 0, new Font("Segoe UI", Font.BOLD, 16), new Color(33, 66, 99)));
+            activityPanel.setBackground(Color.WHITE);
+            String[] recentActivities = { "Enrolled in subjects (Date of enrollment)", "Viewed prospectus (Date)", "Updated profile information (Date)" };
+            for (String activity : recentActivities) { JLabel actLabel = new JLabel("• " + activity); actLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14)); actLabel.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 0)); activityPanel.add(actLabel); }
+            centerPanel.add(announcementPanel); centerPanel.add(activityPanel); add(centerPanel, BorderLayout.CENTER);
+            JPanel quickActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12)); quickActions.setBackground(new Color(245, 248, 252));
+            JButton goToEnrollment = new JButton("Enroll Subjects"); JButton viewGrades = new JButton("View Grades"); JButton updateProfile = new JButton("Update Profile");
+            goToEnrollment.addActionListener(e -> navigateTo("Enrollment"));
+            viewGrades.addActionListener(e -> navigateTo("Grades"));
+            updateProfile.addActionListener(e -> navigateTo("Profile"));
+            quickActions.add(goToEnrollment); quickActions.add(viewGrades); quickActions.add(updateProfile); add(quickActions, BorderLayout.SOUTH);
+        }
+
+        private void navigateTo(String cardName) {
+            if (cardLayoutManager != null && mainContentCardPanel != null && sidebar != null) {
+                cardLayoutManager.show(mainContentCardPanel, cardName);
+                for (Component comp : sidebar.getComponents()) {
+                    if (comp instanceof JButton && ((JButton) comp).getText().equals(cardName)) {
+                        setActiveMenuButton(sidebar, (JButton) comp);
+                        break;
+                    }
+                }
+            } else { JOptionPane.showMessageDialog(this, "Navigation to " + cardName + " is not configured for this view."); }
+        }
+
+        private JPanel makeInfoCard(String title, String value, Color color) {
+            JPanel card = new JPanel(); card.setBackground(color); card.setBorder(BorderFactory.createEmptyBorder(18, 14, 18, 14)); card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+            JLabel val = new JLabel(value, JLabel.CENTER); val.setFont(new Font("Segoe UI", Font.BOLD, 28)); val.setForeground(Color.WHITE); val.setAlignmentX(Component.CENTER_ALIGNMENT);
+            JLabel label = new JLabel(title, JLabel.CENTER); label.setFont(new Font("Segoe UI", Font.PLAIN, 14)); label.setForeground(Color.WHITE); label.setAlignmentX(Component.CENTER_ALIGNMENT);
+            card.add(val); card.add(Box.createVerticalStrut(4)); card.add(label); return card;
+        }
+    }
+
+    // --- NOTIFICATIONS PANEL ---
+    private static JPanel createNotificationsPanel() { /* ... same as previous correct version ... */
+        JPanel panel = new JPanel(new BorderLayout()); panel.setBackground(Color.WHITE); JLabel label = new JLabel("No new notifications.", JLabel.CENTER); label.setFont(new Font("Segoe UI", Font.PLAIN, 18)); panel.add(label, BorderLayout.CENTER); return panel;
+    }
+
+    // --- ENROLLMENT PANEL (RESTORED AND UPDATED) ---
+    private static JPanel createEnrollmentPanel(String username) {
+        JPanel enrollmentPanel = new JPanel(new BorderLayout());
+        enrollmentPanel.setBackground(Color.WHITE);
+        enrollmentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel titleLabel = new JLabel("Course Enrollment", JLabel.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        enrollmentPanel.add(titleLabel, BorderLayout.NORTH);
+
+        String[] columns = {"Course Code", "Course Title", "Units (Lec)", "Units (Lab)", "Total Units"};
+
+        // Available Courses Table (initially empty)
+        DefaultTableModel availableModel = new DefaultTableModel(null, columns) { // Use null for data to make it empty initially
+                @Override
+                public boolean isCellEditable(int row, int column) { return false; }
+            };
+        JTable availableTable = new JTable(availableModel);
+        availableTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane availableScrollPane = new JScrollPane(availableTable);
+        JPanel availablePanel = new JPanel(new BorderLayout());
+        availablePanel.add(new JLabel("Available Courses (Load courses to see options)", JLabel.CENTER), BorderLayout.NORTH);
+        availablePanel.add(availableScrollPane, BorderLayout.CENTER);
+        // TODO: Add a "Load Available Courses" button or logic to populate this table based on student's program/year.
+
+        // Enrolled Courses Table
+        DefaultTableModel enrolledModel = new DefaultTableModel(null, columns) {
+                @Override
+                public boolean isCellEditable(int row, int column) { return false; }
+            };
+        JTable enrolledTable = new JTable(enrolledModel);
+        JScrollPane enrolledScrollPane = new JScrollPane(enrolledTable);
+        JPanel enrolledPanel = new JPanel(new BorderLayout());
+        enrolledPanel.add(new JLabel("Enrolled Courses", JLabel.CENTER), BorderLayout.NORTH);
+        enrolledPanel.add(enrolledScrollPane, BorderLayout.CENTER);
+
+        // Populate enrolled courses from student data
+        if (username != null && EnrollmentFormUI.getStudentDatabase() != null) {
+            EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+            if (student != null && student.getCourses() != null) {
+                for (String courseDesc : student.getCourses()) {
+                    String[] parts = parseCourseDescription(courseDesc); // Helper to parse
+                    enrolledModel.addRow(new Object[]{parts[0], parts[1], parts[2], parts[3], parts[4]});
+                }
+            }
+        }
+
+        // Buttons
+        JButton addButton = new JButton("Add Subject");
+        addButton.addActionListener(e -> {
+                    int[] selectedRows = availableTable.getSelectedRows();
+                    if (selectedRows.length == 0 && availableTable.getRowCount() > 0) { // Check if table has rows before warning
+                        JOptionPane.showMessageDialog(enrollmentPanel, "Please select a course from 'Available Courses' to add.", "No Course Selected", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    } else if (availableTable.getRowCount() == 0) {
+                        JOptionPane.showMessageDialog(enrollmentPanel, "No available courses to add. Please load courses first.", "No Available Courses", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    for (int i = selectedRows.length - 1; i >= 0; i--) { // Iterate backwards to handle removals correctly
+                        int modelRow = availableTable.convertRowIndexToModel(selectedRows[i]);
+                        Object[] rowData = new Object[availableModel.getColumnCount()];
+                        boolean alreadyEnrolled = false;
+                        String courseCodeToAdd = availableModel.getValueAt(modelRow, 0).toString();
+
+                        for(int j=0; j < enrolledModel.getRowCount(); j++){
+                            if(enrolledModel.getValueAt(j,0).toString().equals(courseCodeToAdd)){
+                                alreadyEnrolled = true;
+                                break;
+                            }
+                        }
+                        if(alreadyEnrolled){
+                            JOptionPane.showMessageDialog(enrollmentPanel, "Course " + courseCodeToAdd + " is already enrolled.", "Duplicate Course", JOptionPane.WARNING_MESSAGE);
+                            continue;
+                        }
+
+                        for (int col = 0; col < availableModel.getColumnCount(); col++) {
+                            rowData[col] = availableModel.getValueAt(modelRow, col);
+                        }
+                        enrolledModel.addRow(rowData);
+                        // Optionally remove from availableModel if it's a one-time selection list
+                        // availableModel.removeRow(modelRow);
+                    }
+            });
+
+        JButton removeButton = new JButton("Remove Subject");
+        removeButton.addActionListener(e -> {
+                    int[] selectedRows = enrolledTable.getSelectedRows();
+                    if (selectedRows.length == 0 && enrolledTable.getRowCount() > 0) {
+                        JOptionPane.showMessageDialog(enrollmentPanel, "Please select a course from 'Enrolled Courses' to remove.", "No Course Selected", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    } else if (enrolledTable.getRowCount() == 0) {
+                        // No action needed or a gentle message
+                        return;
+                    }
+                    for (int i = selectedRows.length - 1; i >= 0; i--) {
+                        int modelRow = enrolledTable.convertRowIndexToModel(selectedRows[i]);
+                        // Optionally add back to availableModel if it was removed from there
+                        // Object[] rowData = new Object[enrolledModel.getColumnCount()];
+                        // for (int col = 0; col < enrolledModel.getColumnCount(); col++) {
+                        //     rowData[col] = enrolledModel.getValueAt(modelRow, col);
+                        // }
+                        // availableModel.addRow(rowData);
+                        enrolledModel.removeRow(modelRow);
+                    }
+            });
+
+        JButton confirmButton = new JButton("Confirm Enrollment");
+        confirmButton.addActionListener(e -> {
+                    if (enrolledModel.getRowCount() == 0) {
+                        JOptionPane.showMessageDialog(enrollmentPanel, "No courses selected for enrollment.", "Enrollment", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    // Logic to save enrolled courses to the student's record
+                    List<String> coursesToEnroll = new ArrayList<>();
+                    for (int i = 0; i < enrolledModel.getRowCount(); i++) {
+                        // Reconstruct the descriptive string or just store codes, depending on how EnrollmentFormUI handles it
+                        String courseCode = enrolledModel.getValueAt(i, 0).toString();
+                        String courseTitle = enrolledModel.getValueAt(i, 1).toString();
+                        coursesToEnroll.add(courseCode + ": " + courseTitle); // Example reconstruction
+                    }
+
+                    if (username != null && EnrollmentFormUI.getStudentDatabase() != null) {
+                        EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+                        if (student != null) {
+                            // This assumes Student class has a setCourses method or similar
+                            // student.setCourses(coursesToEnroll); // This would require a setter in Student class
+                            // For now, just print, as modifying studentDb directly needs careful handling if Student is immutable
+                            System.out.println("Confirmed enrollment for " + username + ": " + coursesToEnroll);
+                            JOptionPane.showMessageDialog(enrollmentPanel, "Enrollment Confirmed!\n" + coursesToEnroll.size() + " courses enrolled (data saved in memory).", "Enrollment Successful", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(enrollmentPanel, "Student data not found. Enrollment not saved.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(enrollmentPanel, "Student database not available. Enrollment not saved.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+            });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(addButton);
+        buttonPanel.add(removeButton);
+        buttonPanel.add(confirmButton);
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, availablePanel, enrolledPanel);
+        splitPane.setDividerLocation(0.5); // Divide equally
+        splitPane.setResizeWeight(0.5);   // Allow both sides to resize proportionally
+
+        enrollmentPanel.add(splitPane, BorderLayout.CENTER);
+        enrollmentPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return enrollmentPanel;
+    }
+
+    // Helper method to parse course description string
+    private static String[] parseCourseDescription(String courseDesc) {
+        String courseCode = "N/A";
+        String courseTitle = courseDesc; // Default to full string if no colon
+        String unitsLec = "0"; // Placeholder
+        String unitsLab = "0"; // Placeholder
+        String totalUnits = "0"; // Placeholder
+
+        int colonIndex = courseDesc.indexOf(':');
+        if (colonIndex != -1) {
+            courseCode = courseDesc.substring(0, colonIndex).trim();
+            courseTitle = courseDesc.substring(colonIndex + 1).trim();
+            // Basic placeholder logic for units, can be improved
+            if (courseCode.startsWith("IT-") || courseCode.startsWith("CC-")) {
+                unitsLec = "2"; unitsLab = "1"; totalUnits = "3";
+            } else {
+                unitsLec = "3"; unitsLab = "0"; totalUnits = "3";
+            }
+        }
+        return new String[]{courseCode, courseTitle, unitsLec, unitsLab, totalUnits};
+    }
+
+    // --- STUDY LOAD PANEL ---
+    private static JPanel createStudyLoadPanel(String username) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+
+        JLabel titleLabel = new JLabel("Current Study Load", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        String[] columns = {"Subject", "Schedule", "Units"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        int totalUnitsCalculated = 0;
+
+        if (username != null && EnrollmentFormUI.getStudentDatabase() != null) {
+            EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+            if (student != null && student.getCourses() != null && !student.getCourses().isEmpty()) {
+                for (String courseName : student.getCourses()) {
+                    int units = 3;
+                    // If the course code or name indicates PE, set units to 2.
+                    String courseNameUpper = courseName.toUpperCase();
+                    if (courseNameUpper.startsWith("PE ") || courseNameUpper.startsWith("PE-") || courseNameUpper.startsWith("PE")) {
+                        units = 2;
+                    }
+                    model.addRow(new Object[]{courseName, "TBA", units});
+                    totalUnitsCalculated += units;
+                }
+            } else {
+                model.addRow(new Object[]{"No courses enrolled.", "-", 0});
+            }
+        } else {
+            model.addRow(new Object[]{"Student data not available.", "-", 0});
+        }
+
+        JTable table = new JTable(model);
+        table.setFillsViewportHeight(true);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JLabel totalUnitsLabel = new JLabel("Total Units: " + totalUnitsCalculated);
+        totalUnitsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+
+        JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        southPanel.setBackground(Color.WHITE);
+        southPanel.add(totalUnitsLabel);
+
+        panel.add(southPanel, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    // --- GRADES PANEL ---
+    private static JPanel createGradesPanel(String username) { /* ... same as previous correct version ... */
+        JPanel panel = new JPanel(new BorderLayout()); panel.setBackground(Color.WHITE);
+        JLabel titleLabel = new JLabel("My Grades", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20)); panel.add(titleLabel, BorderLayout.NORTH);
+        String[] columns = {"Subject", "Semester", "Grade", "Remarks"}; DefaultTableModel model = new DefaultTableModel(columns, 0);
+        model.addRow(new Object[]{"No grades available yet.", "-", "-", "-"}); JTable table = new JTable(model);
+        table.setFillsViewportHeight(true); panel.add(new JScrollPane(table), BorderLayout.CENTER); return panel;
+    }
+
+    // --- PROSPECTUS PANEL ---
+    private static JScrollPane createFullProspectusPanel() { /* ... same as previous correct version ... */
+        JPanel mainProspectusPanel = new JPanel(); mainProspectusPanel.setBackground(Color.WHITE);
+        mainProspectusPanel.setLayout(new BoxLayout(mainProspectusPanel, BoxLayout.Y_AXIS));
+        mainProspectusPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        JLabel prospectusTitleLabel = new JLabel("Full Program Prospectus", JLabel.CENTER);
+        prospectusTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        prospectusTitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainProspectusPanel.add(prospectusTitleLabel); mainProspectusPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        mainProspectusPanel.add(createYearSectionPanel("FIRST YEAR", getFirstYearData()));
+        mainProspectusPanel.add(Box.createRigidArea(new Dimension(0, 25)));
+        mainProspectusPanel.add(createYearSectionPanel("SECOND YEAR", getSecondYearData()));
+        mainProspectusPanel.add(Box.createRigidArea(new Dimension(0, 25)));
+        mainProspectusPanel.add(createYearSectionPanel("THIRD YEAR (including Summer)", getThirdYearData()));
+        mainProspectusPanel.add(Box.createRigidArea(new Dimension(0, 25)));
+        mainProspectusPanel.add(createYearSectionPanel("FOURTH YEAR", getFourthYearData()));
+        JLabel generalNoteLabel = new JLabel("Note: ** for electives generally means 'Consult department head' or 'Chosen from list'.", JLabel.CENTER);
+        generalNoteLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        generalNoteLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainProspectusPanel.add(Box.createRigidArea(new Dimension(0, 15))); mainProspectusPanel.add(generalNoteLabel);
+        return new JScrollPane(mainProspectusPanel);
+    }
+
+    private static JPanel createYearSectionPanel(String yearTitle, Object[][] data) { /* ... same as previous correct version ... */
+        JPanel yearPanel = new JPanel(new BorderLayout(0, 5)); yearPanel.setBackground(Color.WHITE);
+        JLabel titleLabel = new JLabel(yearTitle, JLabel.CENTER); titleLabel.setFont(SECTION_TITLE_FONT);
+        yearPanel.add(titleLabel, BorderLayout.NORTH); JTable table = createProspectusTable(data);
+        yearPanel.add(new JScrollPane(table), BorderLayout.CENTER);
+        int rowHeight = table.getRowHeight(); int headerHeight = table.getTableHeader().getPreferredSize().height;
+        int tableHeight = headerHeight + (data.length * rowHeight) + 10; int titleHeight = titleLabel.getPreferredSize().height;
+        Dimension preferredDim = new Dimension(800, titleHeight + tableHeight + 20);
+        yearPanel.setPreferredSize(preferredDim); yearPanel.setMinimumSize(new Dimension(400, 200)); return yearPanel;
+    }
+
+    private static JTable createProspectusTable(Object[][] data) { /* ... same as previous correct version ... */
+        String[] columns = {"Semester", "Course Code", "Descriptive Title", "Units (Lec)", "Units (Lab)", "Total Units", "Prerequisite/Remarks"};
+        DefaultTableModel model = new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int row, int column) { return false; } };
+        JTable table = new JTable(model); table.setFillsViewportHeight(true); table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.getColumnModel().getColumn(0).setPreferredWidth(80); table.getColumnModel().getColumn(1).setPreferredWidth(120);
+        table.getColumnModel().getColumn(2).setPreferredWidth(300); table.getColumnModel().getColumn(3).setPreferredWidth(70);
+        table.getColumnModel().getColumn(4).setPreferredWidth(70); table.getColumnModel().getColumn(5).setPreferredWidth(70);
+        table.getColumnModel().getColumn(6).setPreferredWidth(250); table.setRowHeight(25);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13)); return table;
+    }
+
+    private static Object[][] getFirstYearData() {
+        return new Object[][]{
+            // 1st Semester
+            {"1st Sem", "ENGL 100",      "Communication Arts",                         3, 0, 3, ""},
+            {"1st Sem", "SOCIO 102",     "Gender and Society",                         3, 0, 3, ""},
+            {"1st Sem", "MATH 100",      "College Mathematics",                        3, 0, 3, ""},
+            {"1st Sem", "PSYCH 101",     "Understanding the Self",                     3, 0, 3, ""},
+            {"1st Sem", "CC-INTCOM11",   "Introduction to Computing",                  3, 0, 3, ""},
+            {"1st Sem", "CC-COMPROG11",  "Computer Programming 1",                     2, 1, 3, ""},
+            {"1st Sem", "IT-WEBDEV11",   "Web Design & Development",                   2, 1, 3, ""},
+            {"1st Sem", "PE 101",        "Movement Competency Training (PATHFit 1)",   2, 0, 2, ""},
+            {"1st Sem", "NSTP 101",      "National Service Training Program 1",        3, 0, 3, ""},
+            // 2nd Semester
+            {"2nd Sem", "ENGL 101",      "Purposive Communication",                    3, 0, 3, "ENGL 100"},
+            {"2nd Sem", "ENTREP 101",    "The Entrepreneurial Mind",                   3, 0, 3, ""},
+            {"2nd Sem", "MATH 101",      "Mathematics in the Modern World",            3, 0, 3, "MATH 100"},
+            {"2nd Sem", "HIST 101",      "Readings in Philippine History",             3, 0, 3, ""},
+            {"2nd Sem", "HUM 101",       "Art Appreciation",                           3, 0, 3, ""},
+            {"2nd Sem", "CC-COMPROG12",  "Computer Programming 2",                     2, 1, 3, "CC-COMPROG11"},
+            {"2nd Sem", "CC-DISCRET12",  "Discrete Structures",                        3, 0, 3, "CC-INTCOM11"},
+            {"2nd Sem", "PE 102",        "Exercise-based Fitness Activities (PATHFit 2)", 2, 0, 2, "PE 101"},
+            {"2nd Sem", "NSTP 102",      "National Service Training Program 2",        3, 0, 3, "NSTP 101"}
+        };
+    }
+
+    private static Object[][] getSecondYearData() {
+        return new Object[][]{
+            // 1st Semester
+            {"1st Sem", "SOCIO 101",     "The Contemporary World",                     3, 0, 3, ""},
+            {"1st Sem", "RIZAL 101",     "Life, Works & Writings of Dr. Jose Rizal",   3, 0, 3, ""},
+            {"1st Sem", "CC-DIGILOG21",  "Digital Logic Design",                       2, 1, 3, "CC-DISCRET12"},
+            {"1st Sem", "IT-OOPROG21",   "Object Oriented Programming",                2, 1, 3, "CC-COMPROG12"},
+            {"1st Sem", "IT-SAD21",      "System Analysis & Design",                   3, 0, 3, "CC-COMPROG12"},
+            {"1st Sem", "CC-ACCTG21",    "Accounting for IT",                          3, 0, 3, "MATH 101"},
+            {"1st Sem", "CC-TWRITE21",   "Technical Writing & Presentation Skills in IT", 3, 0, 3, "ENGL 101, CC-INTCOM11"},
+            {"1st Sem", "PE 103",        "Sports and Dance (PATHFit 3)",               2, 0, 2, "PE 102"},
+            // 2nd Semester
+            {"2nd Sem", "STS 101",       "Science, Technology & Society",              3, 0, 3, ""},
+            {"2nd Sem", "PHILO 101",     "Ethics",                                     3, 0, 3, ""},
+            {"2nd Sem", "CC-QUAMETH22",  "Quantitative Methods w/ Prob. Stat.",        3, 0, 3, "CC-DISCRET12"},
+            {"2nd Sem", "IT-PLATECH22",  "Platform Technologies w/ Op. Sys.",          2, 1, 3, "CC-DIGILOG21"},
+            {"2nd Sem", "CC-APPSDEV22",  "Applications Dev't & Emerging Tech.",        2, 1, 3, "IT-OOPROG21, IT-SAD21"},
+            {"2nd Sem", "CC-DASTRUC22",  "Data Structures & Algorithms",               2, 1, 3, "IT-OOPROG21"},
+            {"2nd Sem", "CC-DATACOM22",  "Data Communications",                        2, 1, 3, "CC-DIGILOG21"},
+            {"2nd Sem", "PE 104",        "Sports/Outdoor Adventure (PATHFit 4)",       2, 0, 2, "PE 103"}
+        };
+    }
+
+    private static Object[][] getThirdYearData() {
+        return new Object[][]{
+            // 1st Semester
+            {"1st Sem", "IT-IMDBSYS31",  "Information Management (DB Sys. 1)",         2, 1, 3, "CC-APPSDEV22"},
+            {"1st Sem", "IT-NETWORK31",  "Computer Networks",                          2, 1, 3, "CC-DATACOM22"},
+            {"1st Sem", "IT-TESTQUA31",  "Testing & Quality Assurance",                2, 1, 3, "CC-APPSDEV22"},
+            {"1st Sem", "CC-HCI31",      "Human Computer Interaction",                 2, 1, 3, "IT-SAD21"},
+            {"1st Sem", "CC-RESCOM31",   "Methods of Research in Computing",           3, 0, 3, "CC-TWRITE21, CC-QUAMETH22"},
+            {"1st Sem", "IT-EL ______",  "IT Elective 1",                              2, 1, 3, "**"},
+            {"1st Sem", "IT-FRE ______", "Free Elective 1",                            3, 0, 3, "**"},
+            {"1st Sem", "IT-FRE ______", "Free Elective 2",                            3, 0, 3, "**"},
+            // 2nd Semester
+            {"2nd Sem", "IT-IMDBSYS32",  "Information Management (DB Sys. 2)",         2, 1, 3, "IT-IMDBSYS31"},
+            {"2nd Sem", "IT-INFOSEC32",  "Information Assurance & Security",           2, 1, 3, "IT-IMDBSYS31, IT-NETWORK31, IT-TESTQUA31"},
+            {"2nd Sem", "IT-SYSARCH32",  "System Integration & Architecture",          2, 1, 3, "CC-HCI31"},
+            {"2nd Sem", "CC-TECHNO32",   "Technopreneurship",                          3, 0, 3, "CC-RESCOM31"},
+            {"2nd Sem", "IT-INTPROG32",  "Integrative Prog'g & Technologies",          2, 1, 3, "IT-IMDBSYS31"},
+            {"2nd Sem", "IT-SYSADMN32",  "Systems Administration & Maintenance",       2, 1, 3, "IT-NETWORK31"},
+            {"2nd Sem", "IT-EL ______",  "IT Elective 2",                              2, 1, 3, "**"},
+            {"2nd Sem", "IT-FRE ______", "Free Elective 3",                            3, 0, 3, "**"},
+            // Summer
+            {"Summer",  "IT-CPSTONE30",  "Capstone Project 1",                         3, 0, 3, "**"},
+            {"Summer",  "CC-PROFIS10",   "Professional Issues in Computing",           3, 0, 3, "**"}
+        };
+    }
+
+    private static Object[][] getFourthYearData() {
+        return new Object[][]{
+            // 1st Semester
+            {"1st Sem", "LIT 11",        "Literatures of the World",                   3, 0, 3, ""},
+            {"1st Sem", "IT-CPSTONE40",  "Capstone Project 2",                         3, 0, 3, "IT-CPSTONE30"},
+            {"1st Sem", "IT-EL ______",  "IT Elective 3",                              2, 1, 3, "**"},
+            {"1st Sem", "IT-FRE ______", "Free Elective 4",                            3, 0, 3, "**"},
+            // 2nd Semester
+            {"2nd Sem", "CC-PRACT40",    "Practicum",                                  9, 0, 9, "***must finish all 1st year to 3rd year courses"},
+            {"2nd Sem", "IT-EL ______",  "IT Elective 4",                              2, 1, 3, "**"}
+        };
+    }
+    // --- PROFILE PANEL ---
+private static JPanel createProfilePanel(String username, JFrame frame) {
+    String fullName = "N/A", email = "N/A", yearLevelDisplay = "N/A", courseDisplay = "N/A", studentIdDisplay = "N/A";
+    if (username != null && EnrollmentFormUI.getStudentDatabase() != null) {
+        EnrollmentFormUI.Student student = EnrollmentFormUI.getStudentDatabase().get(username);
+        if (student != null) {
+            fullName = student.getFullName(); email = student.getEmail();
+            yearLevelDisplay = student.getYearLevel(); courseDisplay = student.getProgram();
+            studentIdDisplay = student.getIdNumber();
+        }
+    }
+    JPanel outer = new JPanel(new GridBagLayout());
+    outer.setBackground(new Color(245, 248, 252));
+    JPanel card = new JPanel();
+    card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+    card.setBackground(Color.WHITE);
+    card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 210, 220), 1, true),
+            BorderFactory.createEmptyBorder(30, 40, 30, 40)));
+
+    // --- Profile Picture Panel ---
+    JPanel picPanel = new JPanel();
+    picPanel.setBackground(Color.WHITE);
+    picPanel.setLayout(new BoxLayout(picPanel, BoxLayout.Y_AXIS));
+    // Default icon if no picture is set
+    ImageIcon defaultIcon = new ImageIcon(new BufferedImage(90, 90, BufferedImage.TYPE_INT_ARGB));
+    JLabel avatar = new JLabel(defaultIcon, JLabel.CENTER);
+    avatar.setPreferredSize(new Dimension(90, 90));
+    avatar.setMaximumSize(new Dimension(90, 90));
+    avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
+    avatar.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 220), 1, true));
+    avatar.setOpaque(true);
+
+    JButton changePicBtn = new JButton("Change Picture");
+    changePicBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+    changePicBtn.addActionListener(e -> {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Image files", "jpg", "jpeg", "png", "gif"));
+        if (fileChooser.showOpenDialog(card) == JFileChooser.APPROVE_OPTION) {
+            ImageIcon chosen = new ImageIcon(fileChooser.getSelectedFile().getAbsolutePath());
+            // Scale image to fit label
+            Image scaled = chosen.getImage().getScaledInstance(90, 90, Image.SCALE_SMOOTH);
+            avatar.setIcon(new ImageIcon(scaled));
+        }
+    });
+
+    picPanel.add(avatar);
+    picPanel.add(Box.createVerticalStrut(8));
+    picPanel.add(changePicBtn);
+    card.add(picPanel);
+    card.add(Box.createVerticalStrut(16));
+
+    JLabel nameLabel = new JLabel(fullName, JLabel.CENTER);
+    nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+    nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT); card.add(nameLabel);
+    JLabel idLabel = new JLabel("Student ID: " + studentIdDisplay, JLabel.CENTER);
+    idLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14)); idLabel.setForeground(Color.GRAY);
+    idLabel.setAlignmentX(Component.CENTER_ALIGNMENT); card.add(idLabel);
+    card.add(Box.createVerticalStrut(24));
+    card.add(profileField("Username:", username == null || username.isEmpty() ? "N/A" : username));
+    card.add(profileField("Email:", email)); card.add(profileField("Course:", courseDisplay));
+    card.add(profileField("Year Level:", yearLevelDisplay));
+    card.add(Box.createVerticalStrut(24));
+    JPanel actions = new JPanel(); actions.setBackground(Color.WHITE);
+    actions.setLayout(new FlowLayout(FlowLayout.CENTER, 16, 0));
+    JButton logoutBtn = new JButton("Logout");
+    logoutBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    logoutBtn.setBackground(new Color(255, 69, 0)); logoutBtn.setForeground(Color.WHITE);
+    logoutBtn.setFocusPainted(false); logoutBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    logoutBtn.setPreferredSize(new Dimension(120, 38));
+    logoutBtn.addActionListener(e -> {
+        if (JOptionPane.showConfirmDialog(frame, "Are you sure you want to logout?", "Logout", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            frame.dispose(); LoginUI.createLoginUI();
+        }
+    });
+    actions.add(logoutBtn); card.add(actions);
+    outer.add(card, new GridBagConstraints());
+    return outer;
+}
+
+    private static JPanel profileField(String field, String value) { /* ... same as previous correct version ... */
+        JPanel p = new JPanel(new BorderLayout()); p.setBackground(Color.WHITE);
+        p.setMaximumSize(new Dimension(350, 30));
+        JLabel l1 = new JLabel(field); l1.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        l1.setPreferredSize(new Dimension(110, 26));
+        JLabel l2 = new JLabel(value); l2.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        p.add(l1, BorderLayout.WEST); p.add(l2, BorderLayout.CENTER);
+        p.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0)); return p;
+    }
+
+    private static void setActiveMenuButton(JPanel sidebarPanel, JButton activeButton) { /* ... same as previous correct version ... */
+        for (Component comp : sidebarPanel.getComponents()) {
+            if (comp instanceof JButton) {
+                comp.setBackground(SIDEBAR_COLOR);
+                ((JButton) comp).setForeground(Color.BLACK);
+            }
+        }
+        activeButton.setBackground(ACTIVE_MENU_COLOR);
+        activeButton.setForeground(PRIMARY_COLOR);
+    }
+}

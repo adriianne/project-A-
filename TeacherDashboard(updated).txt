@@ -1,0 +1,593 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableModel;
+import javax.swing.RowFilter;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
+
+public class TeacherDashboard {
+    private static DefaultTableModel gradesModel;
+    private static JTable gradesTable;
+
+    // Dummy database for demonstration
+    public static class EnrollmentFormUI {
+        public static class Student {
+            private final String idNumber, firstName, lastName, email, yearLevel;
+
+            private final java.util.List<String> courses;
+
+            public Student(String idNumber, String firstName, String lastName, String email, String yearLevel, java.util.List<String> courses) {
+                this.idNumber = idNumber;
+                this.firstName = firstName;
+                this.lastName = lastName;
+                this.email = email;
+                this.yearLevel = yearLevel;
+                this.courses = courses;
+            }
+
+            public String getIdNumber() { return idNumber; }
+            public String getFullName() { return firstName + " " + lastName; }
+            public String getEmail() { return email; }
+            public String getYearLevel() { return yearLevel; }
+            public java.util.List<String> getCourses() { return courses; }
+        }
+        private static HashMap<String, Student> studentDatabase = null;
+
+        public static HashMap<String, Student> getStudentDatabase() {
+            if (studentDatabase == null) {
+                studentDatabase = new HashMap<>();
+                // Add sample students:
+                studentDatabase.put("john123", new Student(
+                    "20250001", "John", "Doe", "john.doe@email.com", "1st Year",
+                    java.util.List.of("Math", "Science", "English")
+                ));
+                studentDatabase.put("jane456", new Student(
+                    "20250002", "Jane", "Smith", "jane.smith@email.com", "2nd Year",
+                    java.util.List.of("Math", "History")
+                ));
+            }
+            return studentDatabase;
+        }
+    }
+
+    // Dummy LoginUI for demonstration
+    public static class LoginUI {
+        public static void createLoginUI() {
+            JOptionPane.showMessageDialog(null, "Logout. Returning to Login Screen...");
+            System.exit(0);
+        }
+    }
+
+    public static void main(String[] args) {
+        openTeacherDashboard("Demo Teacher");
+    }
+
+    public static void openTeacherDashboard(String username) {
+        JFrame frame = new JFrame("Teacher Dashboard - " + username);
+        frame.setSize(1200, 800);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+
+        JPanel headerPanel = createHeaderPanel(username);
+        frame.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel sidebarPanel = createSidebarPanel();
+        JPanel mainContentPanel = new JPanel(new CardLayout());
+        mainContentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        frame.add(sidebarPanel, BorderLayout.WEST);
+        frame.add(mainContentPanel, BorderLayout.CENTER);
+
+        String[] menuItems = {"Grades", "Student List", "Evaluation", "Profile"};
+        JButton[] menuButtons = new JButton[menuItems.length];
+
+        for (int i = 0; i < menuItems.length; i++) {
+            String item = menuItems[i];
+            JButton menuButton = createMenuButton(item);
+            menuButtons[i] = menuButton;
+            JPanel contentPanel = createContentPanel(item, username, frame);
+            mainContentPanel.add(contentPanel, item);
+
+            String cardName = item;
+            menuButton.addActionListener(e -> {
+                setActiveMenuButton(sidebarPanel, menuButton);
+                ((CardLayout) mainContentPanel.getLayout()).show(mainContentPanel, cardName);
+            });
+            sidebarPanel.add(menuButton);
+        }
+        if (menuButtons.length > 0) {
+            setActiveMenuButton(sidebarPanel, menuButtons[0]);
+            ((CardLayout) mainContentPanel.getLayout()).show(mainContentPanel, menuItems[0]);
+        }
+
+        // Optionally add a footer panel
+        frame.setVisible(true);
+    }
+
+    private static JPanel createHeaderPanel(String username) {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(0, 51, 102));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel welcomeLabel = new JLabel("Welcome, " + username, JLabel.LEFT);
+        welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        welcomeLabel.setForeground(Color.WHITE);
+        headerPanel.add(welcomeLabel, BorderLayout.WEST);
+
+        JLabel roleLabel = new JLabel("Teacher", JLabel.RIGHT);
+        roleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        roleLabel.setForeground(Color.WHITE);
+        headerPanel.add(roleLabel, BorderLayout.EAST);
+
+        return headerPanel;
+    }
+
+    private static JPanel createSidebarPanel() {
+        JPanel sidebarPanel = new JPanel();
+        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
+        sidebarPanel.setPreferredSize(new Dimension(250, 0));
+        sidebarPanel.setBackground(new Color(230, 230, 250));
+        sidebarPanel.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
+
+        JLabel menuLabel = new JLabel("TEACHER MENU");
+        menuLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sidebarPanel.add(menuLabel);
+        sidebarPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        return sidebarPanel;
+    }
+
+    private static JButton createMenuButton(String item) {
+        JButton menuButton = new JButton(item);
+        menuButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        menuButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        menuButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        menuButton.setBackground(new Color(230, 230, 250));
+        menuButton.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 10));
+        menuButton.setHorizontalAlignment(SwingConstants.LEFT);
+        menuButton.setToolTipText("Go to " + item);
+
+        menuButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                menuButton.setBackground(new Color(180, 180, 220));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                if (!menuButton.getBackground().equals(new Color(180, 180, 220))) {
+                    menuButton.setBackground(new Color(230, 230, 250));
+                }
+            }
+        });
+
+        return menuButton;
+    }
+
+    public static class EvaluationPanel extends JPanel {
+        private final Map<String, String> grades = new HashMap<>();
+        public EvaluationPanel() {
+            setLayout(new BorderLayout(12, 12));
+            setBackground(Color.WHITE);
+
+            JLabel title = new JLabel("Student Evaluation", JLabel.CENTER);
+            title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            add(title, BorderLayout.NORTH);
+
+            JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            searchPanel.setBackground(Color.WHITE);
+
+            JLabel searchLabel = new JLabel("Search Student:");
+            JTextField searchField = new JTextField(20);
+            JButton searchButton = new JButton("Search");
+
+            searchPanel.add(searchLabel);
+            searchPanel.add(searchField);
+            searchPanel.add(searchButton);
+            add(searchPanel, BorderLayout.NORTH);
+
+            String[] columns = {"Student Name", "Subject", "Grade (1.00-5.00)", "Comments"};
+            DefaultTableModel model = new DefaultTableModel(columns, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return column >= 2;
+                }
+            };
+
+            JTable table = new JTable(model);
+            table.setRowHeight(28);
+            table.setFillsViewportHeight(true);
+
+            // Load students from EnrollmentFormUI
+            HashMap<String, EnrollmentFormUI.Student> students = EnrollmentFormUI.getStudentDatabase();
+            if (students != null && !students.isEmpty()) {
+                for (EnrollmentFormUI.Student student : students.values()) {
+                    if (student.getCourses() != null) {
+                        for (String course : student.getCourses()) {
+                            model.addRow(new Object[]{
+                                student.getFullName(),
+                                course,
+                                "",
+                                ""
+                            });
+                        }
+                    }
+                }
+            } else {
+                model.addRow(new Object[]{"No enrolled students found", "", "", ""});
+            }
+
+            JScrollPane scroll = new JScrollPane(table);
+            add(scroll, BorderLayout.CENTER);
+
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setBackground(Color.WHITE);
+            JButton submitBtn = new JButton("Submit Grades");
+            submitBtn.addActionListener(e -> {
+                JOptionPane.showMessageDialog(this, "Grades submitted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            });
+            buttonPanel.add(submitBtn);
+            add(buttonPanel, BorderLayout.SOUTH);
+
+            searchButton.addActionListener(e -> {
+                String searchText = searchField.getText().toLowerCase();
+                TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
+                table.setRowSorter(sorter);
+                if (searchText.trim().length() == 0) {
+                    sorter.setRowFilter(null);
+                } else {
+                    sorter.setRowFilter(RowFilter.regexFilter("(?i)" + searchText));
+                }
+            });
+        }
+    }
+
+    private static JPanel createContentPanel(String menuItem, String username, JFrame frame) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        if (menuItem.equals("Grades")) {
+            panel.add(createGradesPanel(), BorderLayout.CENTER);
+        } else if (menuItem.equals("Student List")) {
+            panel.add(createStudentListTable(), BorderLayout.CENTER);
+        } else if (menuItem.equals("Evaluation")) {
+            panel.add(new EvaluationPanel(), BorderLayout.CENTER);
+        } else if (menuItem.equals("Profile")) {
+            panel.add(createProfilePanel(username, frame), BorderLayout.CENTER);
+        }
+
+        return panel;
+    }
+
+    private static JPanel createGradesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+
+        String[] columns = {"Student Name", "Subject", "Grade", "Score", "Comments"};
+        gradesModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column >= 2;
+            }
+        };
+
+        gradesTable = new JTable(gradesModel);
+        gradesTable.setFillsViewportHeight(true);
+
+        JComboBox<String> gradeComboBox = new JComboBox<>(new String[]{"A", "B", "C", "D", "F"});
+        gradesTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(gradeComboBox));
+
+        gradesTable.getModel().addTableModelListener(e -> {
+            if (e.getColumn() == 3) {
+                int row = e.getFirstRow();
+                String scoreText = gradesTable.getValueAt(row, 3).toString();
+                if (!scoreText.isEmpty()) {
+                    try {
+                        int score = Integer.parseInt(scoreText);
+                        String grade = calculateGrade(score);
+                        gradesTable.setValueAt(grade, row, 2);
+                    } catch (NumberFormatException ex) {}
+                }
+            } else if (e.getColumn() == 2) {
+                int row = e.getFirstRow();
+                String grade = gradesTable.getValueAt(row, 2).toString();
+                int score = calculateScore(grade);
+                gradesTable.setValueAt(score, row, 3);
+            }
+        });
+
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(gradesModel);
+        gradesTable.setRowSorter(sorter);
+
+        JScrollPane scrollPane = new JScrollPane(gradesTable);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.WHITE);
+
+        JButton saveButton = new JButton("Save Grades");
+        saveButton.addActionListener(e -> saveGrades());
+
+        JButton addButton = new JButton("Add Student");
+        addButton.addActionListener(e -> addStudent());
+
+        buttonPanel.add(addButton);
+        buttonPanel.add(saveButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private static String calculateGrade(int score) {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
+    }
+
+    private static int calculateScore(String grade) {
+        switch (grade) {
+            case "A": return 95;
+            case "B": return 85;
+            case "C": return 75;
+            case "D": return 65;
+            case "F": return 55;
+            default: return 0;
+        }
+    }
+
+    private static void saveGrades() {
+        JOptionPane.showMessageDialog(null, "Grades saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private static void addStudent() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        headerPanel.setBackground(Color.WHITE);
+        JLabel titleLabel = new JLabel("Add New Student Record");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        headerPanel.add(titleLabel);
+        panel.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        String[] labels = {"Student Name:", "Subject:", "Grade:", "Score:", "Comments:"};
+        JComponent[] fields = {
+            new JTextField(20),
+            new JTextField(20),
+            new JComboBox<>(new String[]{"A", "B", "C", "D", "F"}),
+            new JTextField(5),
+            new JTextField(20)
+        };
+
+        for (int i = 0; i < labels.length; i++) {
+            JPanel fieldPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+            fieldPanel.setBackground(Color.WHITE);
+
+            JLabel label = new JLabel(labels[i]);
+            label.setPreferredSize(new Dimension(100, 25));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+            fieldPanel.add(label);
+
+            if (fields[i] instanceof JComboBox) {
+                ((JComboBox<?>) fields[i]).setPreferredSize(new Dimension(100, 28));
+            } else {
+                ((JTextField) fields[i]).setPreferredSize(new Dimension(200, 28));
+                ((JTextField) fields[i]).setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            }
+
+            fieldPanel.add(fields[i]);
+            formPanel.add(fieldPanel);
+            formPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        }
+
+        panel.add(formPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(Color.WHITE);
+
+        JButton okButton = new JButton("Save");
+        okButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        okButton.setBackground(new Color(70, 130, 180));
+        okButton.setForeground(Color.WHITE);
+        okButton.setPreferredSize(new Dimension(90, 30));
+
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cancelButton.setPreferredSize(new Dimension(90, 30));
+
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(okButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        JDialog dialog = new JDialog();
+        dialog.setTitle("New Student Record");
+        dialog.setModal(true);
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        okButton.addActionListener(e -> {
+            String name = ((JTextField) fields[0]).getText().trim();
+            String subject = ((JTextField) fields[1]).getText().trim();
+            String grade = (String) ((JComboBox<?>) fields[2]).getSelectedItem();
+            String scoreText = ((JTextField) fields[3]).getText().trim();
+            String comments = ((JTextField) fields[4]).getText().trim();
+
+            if (name.isEmpty() || subject.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Please fill in all required fields",
+                    "Missing Information",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                int score = scoreText.isEmpty() ? calculateScore(grade) : Integer.parseInt(scoreText);
+                if (score < 0 || score > 100) {
+                    throw new NumberFormatException();
+                }
+                gradesModel.addRow(new Object[]{name, subject, grade, score, comments});
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                    "Please enter a valid score (0-100)",
+                    "Invalid Score",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        dialog.setVisible(true);
+    }
+
+    private static JScrollPane createStudentListTable() {
+        String[] columns = {"ID Number", "Name", "Year Level", "Email"};
+
+        HashMap<String, EnrollmentFormUI.Student> students = EnrollmentFormUI.getStudentDatabase();
+        Object[][] data = new Object[students.size()][4];
+
+        int i = 0;
+        for (EnrollmentFormUI.Student student : students.values()) {
+            data[i][0] = student.getIdNumber();
+            data[i][1] = student.getFullName();
+            data[i][2] = student.getYearLevel();
+            data[i][3] = student.getEmail();
+            i++;
+        }
+
+        DefaultTableModel model = new DefaultTableModel(data, columns);
+        JTable table = new JTable(model);
+        table.setFillsViewportHeight(true);
+
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+
+        return new JScrollPane(table);
+    }
+
+    private static JPanel createProfilePanel(String username, JFrame frame) {
+        String fullName = "Demo Teacher";
+        String email = "teacher@example.com";
+        String contact = "+123456789";
+        String teacherId = "T-00001";
+        String role = "Teacher";
+
+        JPanel outer = new JPanel(new GridBagLayout());
+        outer.setBackground(new Color(245, 248, 252));
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 210, 220), 1, true),
+                BorderFactory.createEmptyBorder(30, 40, 30, 40)));
+
+        JPanel picPanel = new JPanel();
+        picPanel.setBackground(Color.WHITE);
+        picPanel.setLayout(new BoxLayout(picPanel, BoxLayout.Y_AXIS));
+        ImageIcon defaultIcon = new ImageIcon(new BufferedImage(90, 90, BufferedImage.TYPE_INT_ARGB));
+        JLabel avatar = new JLabel(defaultIcon, JLabel.CENTER);
+        avatar.setPreferredSize(new Dimension(90, 90));
+        avatar.setMaximumSize(new Dimension(90, 90));
+        avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        avatar.setBorder(BorderFactory.createLineBorder(new Color(200, 210, 220), 1, true));
+        avatar.setOpaque(true);
+
+        JButton changePicBtn = new JButton("Change Picture");
+        changePicBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changePicBtn.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "Image files", "jpg", "jpeg", "png", "gif"));
+            if (fileChooser.showOpenDialog(card) == JFileChooser.APPROVE_OPTION) {
+                ImageIcon chosen = new ImageIcon(fileChooser.getSelectedFile().getAbsolutePath());
+                Image scaled = chosen.getImage().getScaledInstance(90, 90, Image.SCALE_SMOOTH);
+                avatar.setIcon(new ImageIcon(scaled));
+            }
+        });
+
+        picPanel.add(avatar);
+        picPanel.add(Box.createVerticalStrut(8));
+        picPanel.add(changePicBtn);
+        card.add(picPanel);
+        card.add(Box.createVerticalStrut(16));
+
+        JLabel nameLabel = new JLabel(fullName, JLabel.CENTER);
+        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(nameLabel);
+
+        JLabel idLabel = new JLabel("Teacher ID: " + teacherId, JLabel.CENTER);
+        idLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        idLabel.setForeground(Color.GRAY);
+        idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(idLabel);
+
+        card.add(Box.createVerticalStrut(24));
+        card.add(profileField("Username:", username == null || username.isEmpty() ? "N/A" : username));
+        card.add(profileField("Role:", role));
+        card.add(profileField("Email:", email));
+        card.add(profileField("Contact:", contact));
+        card.add(Box.createVerticalStrut(24));
+
+        JPanel actions = new JPanel();
+        actions.setBackground(Color.WHITE);
+        actions.setLayout(new FlowLayout(FlowLayout.CENTER, 16, 0));
+        JButton logoutBtn = new JButton("Logout");
+        logoutBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        logoutBtn.setBackground(new Color(255, 69, 0));
+        logoutBtn.setForeground(Color.WHITE);
+        logoutBtn.setFocusPainted(false);
+        logoutBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        logoutBtn.setPreferredSize(new Dimension(120, 38));
+        logoutBtn.addActionListener(e -> {
+            if (JOptionPane.showConfirmDialog(frame, "Are you sure you want to logout?", "Logout", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                frame.dispose();
+                LoginUI.createLoginUI();
+            }
+        });
+        actions.add(logoutBtn);
+        card.add(actions);
+        outer.add(card, new GridBagConstraints());
+        return outer;
+    }
+
+    private static JPanel profileField(String field, String value) {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(Color.WHITE);
+        p.setMaximumSize(new Dimension(350, 30));
+        JLabel l1 = new JLabel(field);
+        l1.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        l1.setPreferredSize(new Dimension(110, 26));
+        JLabel l2 = new JLabel(value);
+        l2.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        p.add(l1, BorderLayout.WEST);
+        p.add(l2, BorderLayout.CENTER);
+        p.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
+        return p;
+    }
+
+    private static void setActiveMenuButton(JPanel sidebarPanel, JButton activeButton) {
+        for (Component comp : sidebarPanel.getComponents()) {
+            if (comp instanceof JButton) {
+                comp.setBackground(new Color(230, 230, 250));
+            }
+        }
+        activeButton.setBackground(new Color(180, 180, 220));
+    }
+}

@@ -1,0 +1,721 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+
+public class EnrollmentFormUI {
+    private static final Color PRIMARY_COLOR = new Color(0, 102, 204);
+    private static final Color SECONDARY_COLOR = new Color(240, 240, 240);
+    private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 28);
+    private static final Font SUBTITLE_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+    private static final Font LABEL_FONT = new Font("Segoe UI", Font.BOLD, 12);
+    private static final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
+    private static HashMap<String, Student> studentDatabase = new HashMap<>();
+
+    private JTextField idNumberField, firstNameField, lastNameField, emailField;
+    private JComboBox<String> yearLevelCombo, programCombo, semesterCombo;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private JList<String> courseList;
+    private DefaultListModel<String> courseModel;
+    private JFrame frame;
+    private JPanel cardPanel;
+    private CardLayout cardLayout;
+    private int currentStep = 1;
+    private JLabel stepIndicator;
+    private List<String> selectedCourses = new ArrayList<>();
+    private Set<String> checkedCourses = new HashSet<>();
+    private JTextArea reviewSummaryArea;
+    private JTextArea studyLoadSummaryArea;
+
+    // Fixed: Program -> Year -> Semester -> List of Courses
+    private static Map<String, Map<String, Map<String, List<String>>>> allProgramCourseWithSem;
+
+    private static void initializeAllCourseData() {
+        allProgramCourseWithSem = new HashMap<>();
+        Map<String, Map<String, List<String>>> bsitCoursesByYear = new HashMap<>();
+
+        // FIRST YEAR
+        Map<String, List<String>> bsitFirstYearSemCourses = new HashMap<>();
+        bsitFirstYearSemCourses.put("1st Semester", Arrays.asList(
+            "ENGL 100: Communication Arts", "SOCIO 102: Gender and Society", "MATH 100: College Mathematics",
+            "PSYCH 101: Understanding the Self", "CC-INTCOM11: Introduction to Computing", "CC-COMPROG11: Computer Programming 1",
+            "IT-WEBDEV11: Web Design & Development", "PE 101: Movement Competency Training (PATHFit 1)", "NSTP 101: National Service Training Program 1"
+        ));
+        bsitFirstYearSemCourses.put("2nd Semester", Arrays.asList(
+            "ENGL 101: Purposive Communication", "ENTREP 101: The Entrepreneurial Mind", "MATH 101: Mathematics in the Modern World",
+            "HIST 101: Readings in Philippine History", "HUM 101: Art Appreciation", "CC-COMPROG12: Computer Programming 2",
+            "CC-DISCRET12: Discrete Structures", "PE 102: Exercise-based Fitness Activities (PATHFit 2)", "NSTP 102: National Service Training Program 2"
+        ));
+        bsitCoursesByYear.put("1st Year", bsitFirstYearSemCourses);
+
+        // SECOND YEAR
+        Map<String, List<String>> bsitSecondYearSemCourses = new HashMap<>();
+        bsitSecondYearSemCourses.put("1st Semester", Arrays.asList(
+            "SOCIO 101: The Contemporary World",
+            "RIZAL 101: Life, Works & Writings of Dr. Jose Rizal",
+            "CC-DIGILOG21: Digital Logic Design",
+            "IT-OOPROG21: Object Oriented Programming",
+            "IT-SAD21: System Analysis & Design",
+            "CC-ACCTG21: Accounting for IT",
+            "CC-TWRITE21: Technical Writing & Presentation Skills in IT",
+            "PE 103: Sports and Dance (PATHFit 3)"
+        ));
+        bsitSecondYearSemCourses.put("2nd Semester", Arrays.asList(
+            "STS 101: Science, Technology & Society",
+            "PHILO 101: Ethics",
+            "CC-QUAMETH22: Quantitative Methods w/ Prob. Stat.",
+            "IT-PLATECH22: Platform Technologies w/ Op. Sys.",
+            "CC-APPSDEV22: Applications Dev1 & Emerging Tech.",
+            "CC-DASTRUC22: Data Structures & Algorithms",
+            "CC-DATACOM22: Data Communications",
+            "PE 104: Sports/Outdoor Adventure (PATHFit 4)"
+        ));
+        bsitCoursesByYear.put("2nd Year", bsitSecondYearSemCourses);
+
+        // THIRD YEAR
+        Map<String, List<String>> bsitThirdYearSemCourses = new HashMap<>();
+        bsitThirdYearSemCourses.put("1st Semester", Arrays.asList(
+            "IT-IMDBSYS31: Information Management (DB Sys.1)",
+            "IT-NETWORK31: Computer Networks",
+            "IT-TESTOUAS1: Testing & Quality Assurance",
+            "CC-HC131: Human Computer Interaction",
+            "CC-RESCOM31: Methods of Research in Computing",
+            "IT-EL: IT Elective 1",
+            "IT-FRE: Free Elective 1",
+            "IT-FRE: Free Elective 2"
+        ));
+        bsitThirdYearSemCourses.put("2nd Semester", Arrays.asList(
+            "IT-IMDBSYS32: Information Management (DB Sys.2)",
+            "IT-NFOSEC32: Information Assurance & Security",
+            "IT-SYSARCH32: System Integration & Architecture",
+            "CC-TECHNO32: Technopreneurship",
+            "IT-NTPROG32: Integrative Prog3 & Technologies",
+            "IT-SYSADMN32: Systems Administration & Maintenance",
+            "IT-EL: IT Elective 2",
+            "IT-FRE: Free Elective 3"
+        ));
+        bsitCoursesByYear.put("3rd Year", bsitThirdYearSemCourses);
+
+        // FOURTH YEAR
+        Map<String, List<String>> bsitFourthYearSemCourses = new HashMap<>();
+        bsitFourthYearSemCourses.put("1st Semester", Arrays.asList(
+            "LT 11: Literatures of the World",
+            "IT-CPSTONE40: Capstone Project 2",
+            "IT-EL: IT Elective 3",
+            "IT-FRE: Free Elective 4"
+        ));
+        bsitFourthYearSemCourses.put("2nd Semester", Arrays.asList(
+            "CC-PRACT40: Practicum",
+            "IT-EL: IT Elective 4"
+        ));
+        bsitCoursesByYear.put("4th Year", bsitFourthYearSemCourses);
+
+        allProgramCourseWithSem.put("Bachelor of Science in Information Technology", bsitCoursesByYear);
+
+        // For other programs, dummy data (optional)
+        String[] otherPrograms = {
+            "Bachelor of Science in Computer Science", "Bachelor of Science in Business Administration",
+            "Bachelor of Science in Accountancy", "Bachelor of Science in Education", "Bachelor of Science in Nursing"
+        };
+        String[] yearLevels = {"1st Year", "2nd Year", "3rd Year", "4th Year"};
+        String[] semesters = {"1st Semester", "2nd Semester"};
+        for (String prog : otherPrograms) {
+            Map<String, Map<String, List<String>>> semsByYr = new HashMap<>();
+            for (String yrLvl : yearLevels) {
+                Map<String, List<String>> semMap = new HashMap<>();
+                for (String sem : semesters) {
+                    semMap.put(sem, Arrays.asList(prog + " - " + yrLvl + " - " + sem + " (TBD)"));
+                }
+                semsByYr.put(yrLvl, semMap);
+            }
+            allProgramCourseWithSem.put(prog, semsByYr);
+        }
+    }
+
+    public static void openEnrollmentForm() {
+        initializeAllCourseData();
+        new EnrollmentFormUI().initializeForm();
+    }
+
+    private void initializeForm() {
+        frame = new JFrame("University of Cebu - Enrollment");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setMinimumSize(new Dimension(900, 650));
+        frame.setLayout(new BorderLayout());
+        this.courseModel = new DefaultListModel<>();
+        initializeComponents();
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    private void initializeComponents() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        frame.add(mainPanel);
+        JPanel leftPanel = createLeftPanel();
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        cardLayout = new CardLayout();
+        cardPanel = new JPanel(cardLayout);
+        cardPanel.setBackground(Color.WHITE);
+
+        cardPanel.add(createBasicInfoStep(), "step1");
+        cardPanel.add(createProgramSelectionStep(), "step2");
+        cardPanel.add(createCourseSelectionStep(), "step3");
+        cardPanel.add(createReviewEnrollmentStep(), "step4");
+        cardPanel.add(createStudyLoadStep(), "step5");
+
+        stepIndicator = new JLabel("Step 1 of 4", JLabel.CENTER);
+        stepIndicator.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        stepIndicator.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        mainPanel.add(stepIndicator, BorderLayout.NORTH);
+        mainPanel.add(cardPanel, BorderLayout.CENTER);
+    }
+
+    private JPanel createLeftPanel() {
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.setBackground(PRIMARY_COLOR);
+        leftPanel.setPreferredSize(new Dimension(400, 650));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 0, 10, 0);
+        gbc.anchor = GridBagConstraints.CENTER;
+        JLabel universityLabel = new JLabel("UNIVERSITY OF CEBU", JLabel.CENTER);
+        universityLabel.setFont(TITLE_FONT);
+        universityLabel.setForeground(Color.WHITE);
+        gbc.gridy = 0;
+        leftPanel.add(universityLabel, gbc);
+        JLabel mottoLabel = new JLabel("Excellence • Integrity • Service", JLabel.CENTER);
+        mottoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+        mottoLabel.setForeground(new Color(200, 220, 255));
+        gbc.gridy = 1;
+        leftPanel.add(mottoLabel, gbc);
+        return leftPanel;
+    }
+
+    private JPanel createBasicInfoStep() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 0, 20, 0);
+        JLabel titleLabel = new JLabel("Basic Information", JLabel.CENTER);
+        titleLabel.setFont(TITLE_FONT);
+        panel.add(titleLabel, gbc);
+        JLabel subTitle = new JLabel("Please provide your personal details", JLabel.CENTER);
+        subTitle.setFont(SUBTITLE_FONT);
+        subTitle.setForeground(Color.GRAY);
+        panel.add(subTitle, gbc);
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbcFields = new GridBagConstraints();
+        gbcFields.insets = new Insets(5, 0, 5, 10);
+        gbcFields.anchor = GridBagConstraints.WEST;
+        gbcFields.fill = GridBagConstraints.HORIZONTAL;
+        idNumberField = new JTextField(20);
+        firstNameField = new JTextField(20);
+        lastNameField = new JTextField(20);
+        emailField = new JTextField(20);
+        usernameField = new JTextField(20);
+        passwordField = new JPasswordField(20);
+        styleTextField(idNumberField);
+        styleTextField(firstNameField);
+        styleTextField(lastNameField);
+        styleTextField(emailField);
+        styleTextField(usernameField);
+        styleTextField(passwordField);
+        addFormField(formPanel, gbcFields, "ID Number:", idNumberField, 0);
+        addFormField(formPanel, gbcFields, "First Name:", firstNameField, 1);
+        addFormField(formPanel, gbcFields, "Last Name:", lastNameField, 2);
+        addFormField(formPanel, gbcFields, "Email:", emailField, 3);
+        addFormField(formPanel, gbcFields, "Username:", usernameField, 4);
+        addFormField(formPanel, gbcFields, "Password:", passwordField, 5);
+        panel.add(formPanel, gbc);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton nextButton = new JButton("Next");
+        styleButton(nextButton);
+        nextButton.addActionListener(e -> {
+            if (validateBasicInfo()) {
+                cardLayout.show(cardPanel, "step2");
+                currentStep = 2;
+                updateStepIndicator();
+            }
+        });
+        buttonPanel.add(nextButton);
+        panel.add(buttonPanel, gbc);
+        return panel;
+    }
+
+    private JPanel createProgramSelectionStep() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 0, 20, 0);
+        JLabel titleLabel = new JLabel("Program Selection", JLabel.CENTER);
+        titleLabel.setFont(TITLE_FONT);
+        panel.add(titleLabel, gbc);
+        JLabel subTitle = new JLabel("Choose your academic program", JLabel.CENTER);
+        subTitle.setFont(SUBTITLE_FONT);
+        subTitle.setForeground(Color.GRAY);
+        panel.add(subTitle, gbc);
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        GridBagConstraints gbcFields = new GridBagConstraints();
+        gbcFields.insets = new Insets(5, 0, 5, 10);
+        gbcFields.anchor = GridBagConstraints.WEST;
+        gbcFields.fill = GridBagConstraints.HORIZONTAL;
+        programCombo = new JComboBox<>(new String[]{
+            "Bachelor of Science in Information Technology", "Bachelor of Science in Computer Science",
+            "Bachelor of Science in Business Administration", "Bachelor of Science in Accountancy",
+            "Bachelor of Science in Education", "Bachelor of Science in Nursing"
+        });
+        yearLevelCombo = new JComboBox<>(new String[]{"1st Year", "2nd Year", "3rd Year", "4th Year"});
+        styleComboBox(programCombo);
+        styleComboBox(yearLevelCombo);
+        addFormField(formPanel, gbcFields, "Academic Program:", programCombo, 0);
+        addFormField(formPanel, gbcFields, "Year Level:", yearLevelCombo, 1);
+        panel.add(formPanel, gbc);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton backButton = new JButton("Back");
+        styleButton(backButton, SECONDARY_COLOR);
+        backButton.addActionListener(e -> {
+            cardLayout.show(cardPanel, "step1");
+            currentStep = 1;
+            updateStepIndicator();
+        });
+        buttonPanel.add(backButton);
+        JButton nextButton = new JButton("Next");
+        styleButton(nextButton);
+        nextButton.addActionListener(e -> {
+            String selectedProgram = (String) programCombo.getSelectedItem();
+            String selectedYearLevel = (String) yearLevelCombo.getSelectedItem();
+            String selectedSemester = "1st Semester";
+            if (semesterCombo != null) selectedSemester = (String) semesterCombo.getSelectedItem();
+            updateCourseListForSelection(selectedProgram, selectedYearLevel, selectedSemester);
+            cardLayout.show(cardPanel, "step3");
+            currentStep = 3;
+            updateStepIndicator();
+        });
+        buttonPanel.add(nextButton);
+        panel.add(buttonPanel, gbc);
+        return panel;
+    }
+
+    class CheckboxListCellRenderer extends JCheckBox implements ListCellRenderer<String> {
+        public CheckboxListCellRenderer() {
+            setOpaque(true);
+        }
+        @Override
+        public Component getListCellRendererComponent(JList<? extends String> list, String value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            setText(value);
+            setSelected(checkedCourses.contains(value));
+            setFont(list.getFont());
+            setBackground(isSelected ? list.getSelectionBackground() : list.getBackground());
+            setForeground(isSelected ? list.getSelectionForeground() : list.getForeground());
+            setFocusPainted(false);
+            return this;
+        }
+    }
+
+    private JPanel createCourseSelectionStep() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 0, 10, 0);
+
+        JLabel titleLabel = new JLabel("Course Selection", JLabel.CENTER);
+        titleLabel.setFont(TITLE_FONT);
+        panel.add(titleLabel, gbc);
+
+        JLabel subTitle = new JLabel("Select your courses for this semester", JLabel.CENTER);
+        subTitle.setFont(SUBTITLE_FONT);
+        subTitle.setForeground(Color.GRAY);
+        gbc.insets = new Insets(0, 0, 15, 0);
+        panel.add(subTitle, gbc);
+
+        // Semester Combo Box
+        semesterCombo = new JComboBox<>(new String[]{"1st Semester", "2nd Semester"});
+        styleComboBox(semesterCombo);
+        gbc.insets = new Insets(0, 0, 15, 0);
+        panel.add(semesterCombo, gbc);
+
+        courseList = new JList<>(this.courseModel);
+        courseList.setCellRenderer(new CheckboxListCellRenderer());
+        courseList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        courseList.setVisibleRowCount(10);
+        courseList.setFont(SUBTITLE_FONT);
+        courseList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = courseList.locationToIndex(e.getPoint());
+                if (index != -1) {
+                    String item = courseList.getModel().getElementAt(index);
+                    if (checkedCourses.contains(item)) {
+                        checkedCourses.remove(item);
+                    } else {
+                        checkedCourses.add(item);
+                    }
+                    courseList.repaint(courseList.getCellBounds(index, index));
+                }
+            }
+        });
+        JScrollPane scrollPane = new JScrollPane(courseList);
+        scrollPane.setPreferredSize(new Dimension(450, 220));
+        panel.add(scrollPane, gbc);
+
+        // Listen for semester change
+        semesterCombo.addActionListener(e -> {
+            String selectedProgram = (String) programCombo.getSelectedItem();
+            String selectedYearLevel = (String) yearLevelCombo.getSelectedItem();
+            String selectedSemester = (String) semesterCombo.getSelectedItem();
+            updateCourseListForSelection(selectedProgram, selectedYearLevel, selectedSemester);
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton backButton = new JButton("Back");
+        styleButton(backButton, SECONDARY_COLOR);
+        backButton.addActionListener(e -> {
+            cardLayout.show(cardPanel, "step2");
+            currentStep = 2;
+            updateStepIndicator();
+        });
+        buttonPanel.add(backButton);
+
+        JButton nextButton = new JButton("Review Enrollment");
+        styleButton(nextButton);
+        nextButton.addActionListener(e -> {
+            selectedCourses.clear();
+            selectedCourses.addAll(checkedCourses);
+
+            if (selectedCourses.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please select at least one course",
+                        "Course Selection", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            updateReviewEnrollmentPanelContent();
+            cardLayout.show(cardPanel, "step4");
+            currentStep = 4;
+            updateStepIndicator();
+        });
+        buttonPanel.add(nextButton);
+        gbc.insets = new Insets(30, 0, 0, 0);
+        panel.add(buttonPanel, gbc);
+
+        // Initialize course list for the default semester
+        SwingUtilities.invokeLater(() -> {
+            String selectedProgram = (String) programCombo.getSelectedItem();
+            String selectedYearLevel = (String) yearLevelCombo.getSelectedItem();
+            String selectedSemester = (String) semesterCombo.getSelectedItem();
+            updateCourseListForSelection(selectedProgram, selectedYearLevel, selectedSemester);
+        });
+
+        return panel;
+    }
+
+    // Updated: Program, Year, Semester
+    private void updateCourseListForSelection(String selectedProgram, String selectedYearLevel, String selectedSemester) {
+        courseModel.clear();
+        checkedCourses.clear();
+
+        if (allProgramCourseWithSem == null || selectedProgram == null || selectedYearLevel == null || selectedSemester == null) {
+            courseModel.addElement("Course data not available or selection missing.");
+            return;
+        }
+        Map<String, Map<String, List<String>>> coursesByYear = allProgramCourseWithSem.get(selectedProgram);
+        if (coursesByYear != null) {
+            Map<String, List<String>> semMap = coursesByYear.get(selectedYearLevel);
+            if (semMap != null) {
+                List<String> coursesForSem = semMap.get(selectedSemester);
+                if (coursesForSem != null && !coursesForSem.isEmpty()) {
+                    for (String course : coursesForSem) {
+                        courseModel.addElement(course);
+                    }
+                } else {
+                    courseModel.addElement("No courses listed for " + selectedYearLevel + " - " + selectedSemester + " of " + selectedProgram);
+                }
+            } else {
+                courseModel.addElement("No courses listed for " + selectedYearLevel + " of " + selectedProgram);
+            }
+        } else {
+            courseModel.addElement("No course data available for " + selectedProgram);
+        }
+        if (courseList != null) courseList.repaint();
+    }
+
+    private void updateReviewEnrollmentPanelContent() {
+        if (reviewSummaryArea != null) {
+            StringBuilder summary = new StringBuilder();
+            summary.append("Student Information:\n");
+            summary.append("  ID Number: ").append(idNumberField.getText()).append("\n");
+            summary.append("  Name: ").append(firstNameField.getText()).append(" ").append(lastNameField.getText()).append("\n");
+            summary.append("  Email: ").append(emailField.getText()).append("\n\n");
+            summary.append("Academic Program:\n");
+            summary.append("  Program: ").append(programCombo.getSelectedItem()).append("\n");
+            summary.append("  Year Level: ").append(yearLevelCombo.getSelectedItem()).append("\n");
+            summary.append("  Semester: ").append(semesterCombo.getSelectedItem()).append("\n\n");
+            summary.append("Selected Courses:\n");
+            if (selectedCourses.isEmpty()) {
+                summary.append("  No courses selected.\n");
+            } else {
+                for (String course : selectedCourses) {
+                    summary.append("  - ").append(course).append("\n");
+                }
+            }
+            reviewSummaryArea.setText(summary.toString());
+            reviewSummaryArea.setCaretPosition(0);
+        }
+    }
+
+    private JPanel createReviewEnrollmentStep() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.0;
+        gbc.insets = new Insets(10, 0, 10, 0);
+
+        JLabel titleLabel = new JLabel("Review Enrollment", JLabel.CENTER);
+        titleLabel.setFont(TITLE_FONT);
+        panel.add(titleLabel, gbc);
+
+        reviewSummaryArea = new JTextArea();
+        reviewSummaryArea.setEditable(false);
+        reviewSummaryArea.setFont(SUBTITLE_FONT);
+        reviewSummaryArea.setBackground(new Color(245, 245, 245));
+        reviewSummaryArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        GridBagConstraints summaryGbc = (GridBagConstraints) gbc.clone();
+        summaryGbc.gridy = 1;
+        summaryGbc.weighty = 1.0;
+        JScrollPane summaryScrollPane = new JScrollPane(reviewSummaryArea);
+        panel.add(summaryScrollPane, summaryGbc);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton backButton = new JButton("Back");
+        styleButton(backButton, SECONDARY_COLOR);
+        backButton.addActionListener(e -> {
+            cardLayout.show(cardPanel, "step3");
+            currentStep = 3;
+            updateStepIndicator();
+        });
+        buttonPanel.add(backButton);
+        JButton submitButton = new JButton("Submit Enrollment");
+        styleButton(submitButton);
+        submitButton.addActionListener(e -> completeEnrollment());
+        buttonPanel.add(submitButton);
+
+        GridBagConstraints buttonGbc = (GridBagConstraints) gbc.clone();
+        buttonGbc.gridy = 2;
+        buttonGbc.weighty = 0.0;
+        buttonGbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(buttonPanel, buttonGbc);
+        return panel;
+    }
+
+    private void updateStudyLoadPanelContent(Student student) {
+        if (studyLoadSummaryArea != null && student != null) {
+            StringBuilder summary = new StringBuilder();
+            summary.append("ENROLLMENT SUCCESSFUL!\n");
+            summary.append("STUDY LOAD\n\n");
+            summary.append("Student Information:\n");
+            summary.append("  ID Number: ").append(student.getIdNumber()).append("\n");
+            summary.append("  Name: ").append(student.getFullName()).append("\n");
+            summary.append("  Email: ").append(student.getEmail()).append("\n");
+            summary.append("  Username: ").append(student.getUsername()).append("\n\n");
+            summary.append("Academic Program:\n");
+            summary.append("  Program: ").append(student.getProgram()).append("\n");
+            summary.append("  Year Level: ").append(student.getYearLevel()).append("\n\n");
+            summary.append("Enrolled Courses:\n");
+            if (student.getCourses().isEmpty()) {
+                summary.append("  No courses enrolled.\n");
+            } else {
+                for (String course : student.getCourses()) {
+                    summary.append("  - ").append(course).append("\n");
+                }
+            }
+            summary.append("\n\nA confirmation has been sent to your email (mock).\n");
+            studyLoadSummaryArea.setText(summary.toString());
+            studyLoadSummaryArea.setCaretPosition(0);
+        }
+    }
+
+    private JPanel createStudyLoadStep() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.0;
+        gbc.insets = new Insets(10, 0, 10, 0);
+
+        JLabel titleLabel = new JLabel("Study Load / Enrollment Receipt", JLabel.CENTER);
+        titleLabel.setFont(TITLE_FONT);
+        panel.add(titleLabel, gbc);
+
+        studyLoadSummaryArea = new JTextArea();
+        studyLoadSummaryArea.setEditable(false);
+        studyLoadSummaryArea.setFont(SUBTITLE_FONT);
+        studyLoadSummaryArea.setBackground(new Color(245, 245, 245));
+        studyLoadSummaryArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        GridBagConstraints summaryGbc = (GridBagConstraints) gbc.clone();
+        summaryGbc.gridy = 1;
+        summaryGbc.weighty = 1.0;
+        JScrollPane summaryScrollPane = new JScrollPane(studyLoadSummaryArea);
+        panel.add(summaryScrollPane, summaryGbc);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton finishButton = new JButton("Finish Enrollment");
+        styleButton(finishButton);
+        finishButton.addActionListener(e -> {
+            frame.dispose();
+            LoginUI.createLoginUI();
+        });
+        buttonPanel.add(finishButton);
+
+        GridBagConstraints buttonGbc = (GridBagConstraints) gbc.clone();
+        buttonGbc.gridy = 2;
+        buttonGbc.weighty = 0.0;
+        buttonGbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(buttonPanel, buttonGbc);
+        return panel;
+    }
+
+    private void completeEnrollment() {
+        Student newStudent = new Student(
+                idNumberField.getText().trim(),
+                firstNameField.getText().trim(),
+                lastNameField.getText().trim(),
+                emailField.getText().trim(),
+                (String) yearLevelCombo.getSelectedItem(),
+                (String) programCombo.getSelectedItem(),
+                selectedCourses,
+                usernameField.getText().trim(),
+                new String(passwordField.getPassword()).trim()
+        );
+        studentDatabase.put(usernameField.getText().trim(), newStudent);
+        LoginUI.addAccount(usernameField.getText().trim(),
+                new String(passwordField.getPassword()).trim(),
+                "Student");
+        frame.dispose();
+        SwingUtilities.invokeLater(() -> {
+            LoginUI.createLoginUI();
+            LoginUI.autoFillCredentials(
+                    usernameField.getText().trim(),
+                    new String(passwordField.getPassword()).trim()
+            );
+        });
+    }
+
+    private boolean validateBasicInfo() {
+        String idNumber = idNumberField.getText().trim();
+        String firstName = firstNameField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String email = emailField.getText().trim();
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
+        if (idNumber.isEmpty() || firstName.isEmpty() || lastName.isEmpty() ||
+            email.isEmpty() || username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "Please fill all required fields!", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            JOptionPane.showMessageDialog(frame, "Please enter a valid email address", "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    private void updateStepIndicator() {
+        if (currentStep <= 4) {
+            stepIndicator.setText("Step " + currentStep + " of 4");
+        }
+    }
+
+    private void styleButton(JButton button) {
+        styleButton(button, PRIMARY_COLOR);
+    }
+
+    private void styleButton(JButton button, Color bgColor) {
+        button.setFont(BUTTON_FONT);
+        button.setBackground(bgColor);
+        button.setForeground(bgColor.equals(PRIMARY_COLOR) ? Color.WHITE : Color.BLACK);
+        button.setPreferredSize(new Dimension(160, 35));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+    }
+
+    private void addFormField(JPanel panel, GridBagConstraints gbc, String label, JComponent field, int row) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel jLabel = new JLabel(label);
+        jLabel.setFont(LABEL_FONT);
+        panel.add(jLabel, gbc);
+        gbc.gridx = 1;
+        panel.add(field, gbc);
+    }
+
+    private static void styleTextField(JComponent field) {
+        field.setFont(SUBTITLE_FONT);
+        field.setPreferredSize(new Dimension(250, 30));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+    }
+
+    private static void styleComboBox(JComboBox<?> comboBox) {
+        comboBox.setFont(SUBTITLE_FONT);
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(2, 5, 2, 5)
+        ));
+    }
+
+    public static HashMap<String, Student> getStudentDatabase() {
+        return studentDatabase;
+    }
+
+    static class Student {
+        private final String idNumber, firstName, lastName, email, yearLevel, program, username, password;
+        private final List<String> courses;
+        public Student(String id, String fn, String ln, String em, String yl, String prg, List<String> crs, String un, String pw) {
+            idNumber = id; firstName = fn; lastName = ln; email = em; yearLevel = yl; program = prg; courses = crs; username = un; password = pw;
+        }
+        public String getFullName() { return firstName + " " + lastName; }
+        public String getEmail() { return email; }
+        public String getYearLevel() { return yearLevel; }
+        public String getProgram() { return program; }
+        public List<String> getCourses() { return courses; }
+        public String getUsername() { return username; }
+        public String getIdNumber() { return idNumber; }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(EnrollmentFormUI::openEnrollmentForm);
+    }
+}
